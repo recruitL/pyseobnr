@@ -49,9 +49,16 @@ def single_mismatch(p: Tuple[str, str, bool]) -> Tuple:
     if q < 1:
         q = 1 / q
     if model == "SEOBNRv5HM":
-
         _, _, calib_model = generate_modes_opt(
-            q, target_model.chi1[-1], target_model.chi2[-1], 0.7 * target_model.omega0,debug=True
+            q, target_model.chi1[-1], target_model.chi2[-1], 0.7 * target_model.omega0,
+            debug=True, approximant="SEOBNRv5HM",
+        )
+        modes = modes_v5HM
+    elif model == "SEOBNRv5HM_nonspin":
+        # Non-spin Hamiltonian; compare to NR (spins taken from NR, EOB uses chi=0)
+        _, _, calib_model = generate_modes_opt(
+            q, 0.0, 0.0, 0.7 * target_model.omega0,
+            debug=True, approximant="SEOBNRv5HM_nonspin",
         )
         modes = modes_v5HM
     elif model == "SEOBNRv4HM":
@@ -124,7 +131,7 @@ def mismatch_NR(
     pool = Pool(n_cpu)
     lst = list(pool.map(single_mismatch, [(x, model) for x in NR_paths]))
 
-    if model == "SEOBNRv5HM":
+    if model == "SEOBNRv5HM" or model == "SEOBNRv5HM_nonspin":
         modes = modes_v5HM
     elif model == "SEOBNRv4HM":
         modes = modes_v4HM
