@@ -30,6 +30,12 @@ extensions = [
         define_macros=[_numpy_no_deprecated_api],
     ),
     Extension(
+        "pyseobnr.eob.hamiltonian.Ham_nonspin_custom_C",
+        ["pyseobnr/eob/hamiltonian/Ham_nonspin_custom_C.pyx"],
+        include_dirs=[np.get_include(), "pyseobnr/eob/utils", "pyseobnr/eob/hamiltonian"],
+        define_macros=[_numpy_no_deprecated_api],
+    ),
+    Extension(
         "pyseobnr.eob.hamiltonian.Hamiltonian_C",
         ["pyseobnr/eob/hamiltonian/Hamiltonian_C.pyx"],
         include_dirs=[np.get_include(), "pyseobnr/eob/utils"],
