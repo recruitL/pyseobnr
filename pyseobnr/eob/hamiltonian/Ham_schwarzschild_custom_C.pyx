@@ -9,11 +9,12 @@ H_eff: effective Hamiltonian in Schwarzschild (geometric units, M=1 for the metr
 
 Relation to real two-body Hamiltonian (user-requested):
   H_EOB = M * sqrt(1 + 2*nu*(H_eff/mu - 1))
-  with mu = reduced mass = M*nu, so H_eff/mu = H_eff/(M*nu). Hence
-  H_EOB = M * sqrt(1 + 2*nu*(H_eff/(M*nu) - 1))
+  In the standard EOB conventions used elsewhere in this codebase,
+  H_eff is already made dimensionless by the reduced mass mu, so we
+  treat H_eff_schw computed below as this dimensionless H_eff.
 
 The code stores H = H_EOB/nu (same convention as Ham_align), so
-  H = M * sqrt(1 + 2*nu*(H_eff/(M*nu) - 1)) / nu
+  H = M * sqrt(1 + 2*nu*(H_eff - 1)) / nu
 """
 from libc.math cimport sqrt
 
@@ -34,9 +35,9 @@ cimport numpy as np
 # A = 1 - 2/r
 # H_eff = sqrt(A + prst^2/A + L^2*A/r^2)
 # xi = A
-# Heff_dimless = H_eff / (M*nu)
-# H_EOB = M * sqrt(1 + 2*nu*(Heff_dimless - 1))
-# H = H_EOB/nu = M * sqrt(1 + 2*nu*(Heff_dimless - 1)) / nu
+# Here H_eff is treated as the usual EOB effective Hamiltonian per reduced mass,
+# so we directly use it in H_EOB = M * sqrt(1 + 2*nu*(H_eff - 1)).
+# H = H_EOB/nu = M * sqrt(1 + 2*nu*(H_eff - 1)) / nu
 
 
 cdef inline double _A_schw(double r):
@@ -77,9 +78,8 @@ cdef class Ham_schwarzschild_custom_C(Hamiltonian_C):
         cdef double nu = self.EOBpars.p_params.nu
         cdef double A = _A_schw(r)
         cdef double H_eff_schw = _H_eff_schw(r, prst, L, A)
-        cdef double mu = M * nu
-        cdef double Heff_dimless = H_eff_schw / mu
-        cdef double H_EOB = M * sqrt(1.0 + 2.0 * nu * (Heff_dimless - 1.0))
+        # Treat H_eff_schw as the dimensionless effective Hamiltonian per mu
+        cdef double H_EOB = M * sqrt(1.0 + 2.0 * nu * (H_eff_schw - 1.0))
         cdef double H = H_EOB / nu
         cdef double xi = A
         if r <= 2.0 or H != H:
@@ -102,9 +102,8 @@ cdef class Ham_schwarzschild_custom_C(Hamiltonian_C):
         cdef double nu = self.EOBpars.p_params.nu
         cdef double A = _A_schw(r)
         cdef double H_eff_schw = _H_eff_schw(r, prst, L, A)
-        cdef double mu = M * nu
-        cdef double Heff_dimless = H_eff_schw / mu
-        cdef double den = sqrt(1.0 + 2.0 * nu * (Heff_dimless - 1.0))
+        # H = M/nu * sqrt(1 + 2*nu*(H_eff_schw - 1))
+        cdef double den = sqrt(1.0 + 2.0 * nu * (H_eff_schw - 1.0))
         if den <= 0.0 or r <= 2.0:
             raise ValueError("Incorrect domain (grad)")
         cdef double dA_dr = 2.0 / (r * r)
@@ -115,11 +114,13 @@ cdef class Ham_schwarzschild_custom_C(Hamiltonian_C):
         )
         cdef double dH_eff_dprst = prst / (A * H_eff_schw)
         cdef double dH_eff_dL = L * A / (H_eff_schw * r * r)
-        cdef double fac = (1.0 / nu) / den * (1.0 / mu)
-        cdef double dHdr = fac * dH_eff_dr * M
+        # Chain rule: H = (M/nu) * den,  den = sqrt(1 + 2*nu*(H_eff_schw - 1))
+        # dH/dx = (M/nu) * (1/(2*den)) * 2*nu * dH_eff_schw/dx = M * dH_eff_schw/dx / den
+        cdef double fac = M / den
+        cdef double dHdr = fac * dH_eff_dr
         cdef double dHdphi = 0.0
-        cdef double dHdpr = fac * dH_eff_dprst * M
-        cdef double dHdpphi = fac * dH_eff_dL * M
+        cdef double dHdpr = fac * dH_eff_dprst
+        cdef double dHdpphi = fac * dH_eff_dL
         return (dHdr, dHdphi, dHdpr, dHdpphi)
 
     cpdef double csi(
