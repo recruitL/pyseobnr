@@ -1,7 +1,16 @@
 from importlib.metadata import version
 
+import os
+
 import numpy as np
+import scipy
 from Cython.Build import cythonize
+
+try:
+    _scipy_include = scipy.get_include()
+except AttributeError:
+    # scipy < 1.8: Cython cimports for scipy.special live under the scipy package root
+    _scipy_include = os.path.dirname(scipy.__file__)
 from setuptools import Extension, find_packages, setup
 
 # see https://cython.readthedocs.io/en/latest/src/userguide/migrating_to_cy30.html#numpy-c-api
@@ -32,7 +41,12 @@ extensions = [
     Extension(
         "pyseobnr.eob.hamiltonian.Ham_nonspin_custom_C",
         ["pyseobnr/eob/hamiltonian/Ham_nonspin_custom_C.pyx"],
-        include_dirs=[np.get_include(), "pyseobnr/eob/utils", "pyseobnr/eob/hamiltonian"],
+        include_dirs=[
+            np.get_include(),
+            _scipy_include,
+            "pyseobnr/eob/utils",
+            "pyseobnr/eob/hamiltonian",
+        ],
         define_macros=[_numpy_no_deprecated_api],
     ),
     Extension(
