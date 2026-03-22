@@ -13,7 +13,12 @@ from pygsl_lite import spline
 from scipy.interpolate import CubicSpline
 from scipy.optimize import root
 
+from pyseobnr.eob.dynamics.initial_conditions_aligned_opt import computeIC_opt
+from pyseobnr.eob.dynamics.initial_conditions_nonspin_custom_opt import (
+    computeIC_nonspin_custom_opt,
+)
 from pyseobnr.eob.dynamics.integrate_ode import compute_dynamics_opt
+from pyseobnr.eob.hamiltonian.Ham_nonspin_custom_C import Ham_nonspin_custom_C
 from pyseobnr.eob.dynamics.integrate_ode_prec import (
     InitialConditionPostadiabaticTypes as InitialConditionPostadiabaticTypesPrecessing,
 )
@@ -314,6 +319,11 @@ class SEOBNRv5HM_opt(Model, SEOBNRv5ModelBaseWithpSEOBSupport):
             # This includes both the initial conditions
             # and the integration of the ODEs
             if not self.settings["postadiabatic"]:
+                _compute_ic = (
+                    computeIC_nonspin_custom_opt
+                    if isinstance(self.H, Ham_nonspin_custom_C)
+                    else computeIC_opt
+                )
                 dynamics_low, dynamics_fine = compute_dynamics_opt(
                     self.omega0,
                     self.H,
@@ -328,6 +338,7 @@ class SEOBNRv5HM_opt(Model, SEOBNRv5ModelBaseWithpSEOBSupport):
                     backend="ode",
                     step_back=self.step_back,
                     r_stop=r_stop,
+                    compute_ic=_compute_ic,
                 )
             else:
                 if self.settings["postadiabatic_type"] == "numeric":
