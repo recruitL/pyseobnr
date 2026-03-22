@@ -10,6 +10,8 @@ import numpy as np
 from .eob.hamiltonian.Ham_align_a6_apm_AP15_DP23_gaugeL_Tay_C import (
     Ham_align_a6_apm_AP15_DP23_gaugeL_Tay_C as Ham_aligned_opt,
 )
+from .eob.hamiltonian.Ham_nonspin_custom_C import Ham_nonspin_custom_C
+from .eob.hamiltonian.Ham_schwarzschild_custom_C import Ham_schwarzschild_custom_C
 from .eob.hamiltonian.Ham_AvgS2precess_simple_cython_PA_AD import (
     Ham_AvgS2precess_simple_cython_PA_AD as Ham_prec_pa_cy,
 )
@@ -19,7 +21,10 @@ from .models import SEOBNRv5EHM, SEOBNRv5HM
 from .models.model import Model
 
 #: Supported approximants
-SupportedApproximants = Literal["SEOBNRv5HM", "SEOBNRv5PHM", "SEOBNRv5EHM"]
+SupportedApproximants = Literal[
+    "SEOBNRv5HM", "SEOBNRv5HM_nonspin", "SEOBNRv5HM_schwarzschild",
+    "SEOBNRv5PHM", "SEOBNRv5EHM",
+]
 
 
 def generate_prec_hpc_opt(
@@ -151,7 +156,7 @@ def _check_spins(
     ):  # chi2 is correct here
         raise ValueError("Boolean spin values unsupported")
 
-    if approximant in ["SEOBNRv5HM", "SEOBNRv5EHM"] and (
+    if approximant in ["SEOBNRv5HM", "SEOBNRv5HM_nonspin", "SEOBNRv5HM_schwarzschild", "SEOBNRv5EHM"] and (
         (np.abs(chi1_[:2]).max() > 1e-10) or (np.abs(chi2_[:2]).max() > 1e-10)
     ):
         raise ValueError(
@@ -245,6 +250,34 @@ def generate_modes_opt(
             chi_2=chi2_z,
             omega0=omega_start,
             H=Ham_aligned_opt,
+            RR=RR_f,
+            settings=settings,
+        )
+        model()
+
+    elif approximant == "SEOBNRv5HM_nonspin":
+        # Non-spin Hamiltonian only; RR and rest inherit from align-spin model.
+        RR_f = SEOBNRv5RRForce()
+        model = SEOBNRv5HM.SEOBNRv5HM_opt(
+            q,
+            chi_1=0.0,
+            chi_2=0.0,
+            omega0=omega_start,
+            H=Ham_nonspin_custom_C,
+            RR=RR_f,
+            settings=settings,
+        )
+        model()
+
+    elif approximant == "SEOBNRv5HM_schwarzschild":
+        # Schwarzschild H_eff: H_EOB = M*sqrt(1+2*nu*(H_eff/mu-1)); RR from align-spin.
+        RR_f = SEOBNRv5RRForce()
+        model = SEOBNRv5HM.SEOBNRv5HM_opt(
+            q,
+            chi_1=0.0,
+            chi_2=0.0,
+            omega0=omega_start,
+            H=Ham_schwarzschild_custom_C,
             RR=RR_f,
             settings=settings,
         )

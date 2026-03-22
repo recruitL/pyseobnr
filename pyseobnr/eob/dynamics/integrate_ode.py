@@ -106,6 +106,7 @@ def compute_dynamics_opt(
     min_step=1.0e-9,
     y_init=None,
     r_stop=None,
+    compute_ic=None,
 ):
     """
     Main function to integrate the dynamics
@@ -127,7 +128,18 @@ def compute_dynamics_opt(
 
     Returns:
         np.array, np.array: coarse and fine dynamics arrays
+
+    compute_ic:
+        Callable with the same signature as
+        :func:`~.initial_conditions_aligned_opt.computeIC_opt`.
+        If ``None``, uses the aligned-spin routine. For
+        :class:`~pyseobnr.eob.hamiltonian.Ham_nonspin_custom_C.Ham_nonspin_custom_C`,
+        pass :func:`~.initial_conditions_nonspin_custom_opt.computeIC_nonspin_custom_opt`
+        (or let :class:`~pyseobnr.models.SEOBNRv5HM.SEOBNRv5HM_opt` choose it automatically).
     """
+
+    if compute_ic is None:
+        compute_ic = computeIC_opt
 
     sys = odeiv2.system(
         ODE_system_RHS_opt, None, 4, [H, RR, chi_1, chi_2, m_1, m_2, params]
@@ -144,7 +156,7 @@ def compute_dynamics_opt(
         r_stop = 1.4
 
     if y_init is None:
-        r0, pphi0, pr0 = computeIC_opt(
+        r0, pphi0, pr0 = compute_ic(
             omega0, H, RR, chi_1, chi_2, m_1, m_2, params=params
         )
         y0 = np.array([r0, 0.0, pr0, pphi0])

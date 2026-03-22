@@ -15,21 +15,29 @@ modes_v4HM = [(2, 2), (2, 1), (3, 3), (4, 4), (5, 5)]
 def mismatch_EOB(q, chi1, chi2, model_1_name, model_2_name):
 
     omega0 = 0.015
+    modes = modes_v5HM  # default for v5HM / v5HM_nonspin
 
     if model_1_name == "SEOBNRv5HM":
-        _,_,model_1 = generate_modes_opt(q,chi1,chi2,omega0,debug=True)
-
-
+        _, _, model_1 = generate_modes_opt(
+            q, chi1, chi2, omega0, debug=True, approximant="SEOBNRv5HM"
+        )
+    elif model_1_name == "SEOBNRv5HM_nonspin":
+        _, _, model_1 = generate_modes_opt(
+            q, 0.0, 0.0, omega0, debug=True, approximant="SEOBNRv5HM_nonspin"
+        )
     elif model_1_name == "SEOBNRv4HM":
         model_1 = SEOBNRv4HM_LAL(q, chi1, chi2, omega0)
         model_1()
         modes = modes_v4HM
 
     if model_2_name == "SEOBNRv5HM":
-        _,_,model_2 = generate_modes_opt(q,chi1,chi2,omega0,debug=True)
-
-
-
+        _, _, model_2 = generate_modes_opt(
+            q, chi1, chi2, omega0, debug=True, approximant="SEOBNRv5HM"
+        )
+    elif model_2_name == "SEOBNRv5HM_nonspin":
+        _, _, model_2 = generate_modes_opt(
+            q, 0.0, 0.0, omega0, debug=True, approximant="SEOBNRv5HM_nonspin"
+        )
     elif model_2_name == "SEOBNRv4HM":
         model_2 = SEOBNRv4HM_LAL(q, chi1, chi2, omega0)
         model_2()
@@ -117,7 +125,6 @@ if __name__ == "__main__":
 
     if args.model_1_name == "SEOBNRv4HM" or args.model_2_name == "SEOBNRv4HM":
         mode_list = modes_v4HM
-
     else:
         mode_list = modes_v5HM
 
